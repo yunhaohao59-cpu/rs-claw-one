@@ -214,3 +214,5 @@ cargo build --release --target x86_64-pc-windows-gnu
 ## 协议
 
 MIT License © 2025 [yunhaohao59-cpu](https://github.com/yunhaohao59-cpu)
+
+本项目基于 [OpenClaw](https://github.com/openclaw/openclaw)（MIT License © 2025 OpenClaw contributors）重写，保留原始版权声明，详见 [LICENSE](./LICENSE)。
