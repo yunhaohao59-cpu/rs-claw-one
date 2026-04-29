@@ -12,13 +12,17 @@
 
 这也是本项目最想传达的一点：**未来已来，每个人都可以和 AI 一起创造。**
 
-特别鸣谢 DeepSeek V4 Pro 🫡
+特别鸣谢：
+- [OpenClaw](https://github.com/openclaw/openclaw) — 本项目的基础与灵感来源，MIT 协议
+- DeepSeek V4 Pro — 本项目 100% 由你协助开发完成 🫡
 
 ---
 
 ## 这是什么
 
-RS-Claw 的灵感来自 [OpenClaw](https://github.com/openclaw)——一个优秀的 Node.js AI 助手项目。但 OpenClaw 安装依赖 Node.js、npm、复杂的配置流程，对普通用户门槛太高。
+RS-Claw 是基于 [OpenClaw](https://github.com/openclaw/openclaw) 的 Rust 重写版本。
+
+OpenClaw 是一个优秀的 Node.js AI 助手项目，功能强大但安装依赖 Node.js、npm、复杂的配置流程，对普通用户门槛太高。RS-Claw 保留了 OpenClaw 的核心架构思想（Gateway Hub + Agent 运行时 + 工具系统），用 Rust 从头实现了一遍。
 
 RS-Claw 做了三件事：
 
