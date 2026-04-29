@@ -1,0 +1,69 @@
+[package]
+name = "rs-claw"
+version = "0.1.0"
+edition = "2021"
+description = "RS-Claw — 跨平台桌面 AI 助手，全面操控电脑"
+license = "MIT"
+repository = ""
+authors = ["umace"]
+
+[[bin]]
+name = "rs-claw"
+path = "src/main.rs"
+
+[features]
+default = []
+tools-desktop = ["enigo", "xcap", "atspi"]
+tools-browser = ["chromiumoxide"]
+tools-all = ["tools-desktop", "tools-browser"]
+embedding-local = ["ort"]
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+clap = { version = "4", features = ["derive"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+reqwest = { version = "0.12", features = ["json", "stream", "rustls-tls"], default-features = false }
+tokio-tungstenite = { version = "0.24", features = ["rustls-tls-native-roots"] }
+futures-util = "0.3"
+uuid = { version = "1", features = ["v4", "v7"] }
+rusqlite = { version = "0.31", features = ["bundled"] }
+ring = "0.17"
+base64 = "0.22"
+sha2 = "0.10"
+ed25519-dalek = "2"
+rand = "0.8"
+chrono = { version = "0.4", features = ["serde"] }
+dirs = "5"
+thiserror = "2"
+async-trait = "0.1"
+anyhow = "1"
+
+# L4 Desktop (gated behind tools-desktop)
+enigo = { version = "0.3", optional = true }
+xcap = { version = "0.3", optional = true }
+atspi = { version = "0.22", optional = true }
+
+# L5 Browser (gated behind tools-browser)
+chromiumoxide = { version = "0.7", optional = true, features = ["tokio-runtime"] }
+
+# Local embedding (gated behind embedding-local)
+ort = { version = "2.0.0-rc.12", optional = true }
+
+[target.'cfg(not(target_os = "windows"))'.dependencies]
+usearch = "2"
+
+[target.'cfg(target_os = "windows")'.dependencies]
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"
+
+[profile.dev]
+opt-level = 1

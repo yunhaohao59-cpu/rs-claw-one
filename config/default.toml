@@ -1,0 +1,39 @@
+[gateway]
+# Gateway REST + WebSocket 端口
+port = 18789
+host = "127.0.0.1"
+
+[model]
+# 主对话模型提供商: openai / deepseek / claude
+provider = "deepseek"
+# API Key (支持环境变量 ${VAR_NAME})
+api_key = ""
+model = "deepseek-chat"
+# 自定义 API 地址 (兼容 OpenAI 协议)
+# base_url = "https://api.deepseek.com/v1"
+
+[vision]
+# 视觉识图模型提供商
+provider = "openai"
+api_key = ""
+model = "gpt-4o"
+# 是否在视觉识别失败时回退到无障碍 API
+fallback_to_accessibility = true
+# 坐标模式: relative(0.0-1.0 百分比) / absolute(像素)
+coordinate_mode = "relative"
+
+[memory]
+# 会话最大消息数（超出触发自动压缩）
+max_session_messages = 100
+# Token 阈值，超过则触发 Compaction
+compaction_threshold = 64000
+# 自动注入的记忆片段数
+top_k_memories = 3
+# 自动触发上下文压缩
+auto_compaction = true
+
+[skill]
+# 任务完成后自动提炼技能
+auto_refine = true
+# 技能匹配相似度阈值 (0.0-1.0)
+similarity_threshold = 0.75
