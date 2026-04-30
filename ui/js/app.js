@@ -41,20 +41,21 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Titlebar window controls
+  // Titlebar window controls — using Tauri commands (v2 compatible)
   let isMaximized = false;
   document.getElementById('btn-minimize').addEventListener('click', async () => {
-    if (window.__TAURI__) await window.__TAURI__.window.getCurrent().minimize();
+    try { if (window.__TAURI__) await window.__TAURI__.core.invoke('minimize_window'); } catch(e) {}
   });
   document.getElementById('btn-maximize').addEventListener('click', async () => {
-    if (window.__TAURI__) {
-      const win = window.__TAURI__.window.getCurrent();
-      if (isMaximized) { await win.unmaximize(); isMaximized = false; }
-      else { await win.maximize(); isMaximized = true; }
-    }
+    try {
+      if (window.__TAURI__) {
+        if (isMaximized) { await window.__TAURI__.core.invoke('unmaximize_window'); isMaximized = false; }
+        else { await window.__TAURI__.core.invoke('maximize_window'); isMaximized = true; }
+      }
+    } catch(e) {}
   });
   document.getElementById('btn-close').addEventListener('click', async () => {
-    if (window.__TAURI__) await window.__TAURI__.window.getCurrent().close();
+    try { if (window.__TAURI__) await window.__TAURI__.core.invoke('close_window'); } catch(e) {}
   });
 
   showEmptyState(true);
