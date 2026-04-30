@@ -1,0 +1,34 @@
+name: Build Windows GUI
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Build Tauri GUI (Windows)
+        run: |
+          cd src-tauri
+          cargo tauri build --bundles nsis
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: rs-claw-windows-gui
+          path: target/release/bundle/nsis/*.exe
+
+      - name: Upload raw binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: rs-claw-windows-exe
+          path: target/release/rs-claw-gui.exe
