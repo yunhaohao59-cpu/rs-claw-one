@@ -54,7 +54,6 @@ chromiumoxide = { version = "0.7", optional = true, features = ["tokio-runtime"]
 ort = { version = "2.0.0-rc.12", optional = true }
 
 [target.'cfg(not(target_os = "windows"))'.dependencies]
-usearch = "2"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 
