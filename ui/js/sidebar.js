@@ -105,11 +105,18 @@ async function switchToSession(id) {
 }
 
 async function newSession() {
+  let name = '';
+  try {
+    name = prompt('给新对话起个名字（留空自动命名）：') || '';
+  } catch(e) { name = ''; }
   try {
     if (window.__TAURI__) {
       const id = await window.__TAURI__.core.invoke('new_session');
+      if (name.trim()) {
+        await window.__TAURI__.core.invoke('rename_session', { sessionId: id, name: name.trim() });
+      }
       window._currentSession = id;
-      document.getElementById('chat-title').textContent = '新对话';
+      document.getElementById('chat-title').textContent = name.trim() || '新对话';
       document.getElementById('message-list').innerHTML = '';
       showEmptyState(true);
       await loadSessions();
@@ -128,7 +135,6 @@ function showEmptyState(show) {
 async function initSidebar() {
   document.getElementById('btn-new-chat').addEventListener('click', newSession);
   await loadSessions();
-  const firstId = sessions.length > 0 ? sessions[0].id : null;
-  if (firstId) await switchToSession(firstId);
-  else window._currentSession = null;
+  window._currentSession = null;
+  showEmptyState(true);
 }

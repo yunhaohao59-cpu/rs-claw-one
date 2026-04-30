@@ -71,16 +71,30 @@ document.addEventListener('DOMContentLoaded', () => {
       if (window.__TAURI__) {
         await window.__TAURI__.core.invoke('save_config', { provider, apiKey, model, baseUrl });
         settingsOverlay.classList.add('hidden');
-        alert('配置已保存。请重启应用以生效。');
+        refreshModelBadge();
+        alert('配置已保存。请重启应用以使新配置完全生效。');
       }
     } catch (e) { alert('保存失败: ' + e); }
   });
 
   // Check if API key is set
   checkApiKey();
+  refreshModelBadge();
 
   showEmptyState(true);
 });
+
+async function refreshModelBadge() {
+  try {
+    if (window.__TAURI__) {
+      const cfg = await window.__TAURI__.core.invoke('get_config');
+      const el = document.getElementById('model-indicator');
+      if (el && cfg.model) {
+        el.textContent = '● ' + (cfg.model.model || 'deepseek-chat');
+      }
+    }
+  } catch(e) { console.warn('Refresh model badge failed:', e); }
+}
 
 async function checkApiKey() {
   try {

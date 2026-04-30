@@ -48,7 +48,11 @@ pub async fn start() -> anyhow::Result<()> {
         let a = agent.lock().await;
         s::info_line("Provider", &config.model.provider);
         s::info_line("Model", &config.model.model);
-        s::info_line("Session", &format!("{} (new)", &a.session_id()[..8]));
+        if a.session_id().is_empty() {
+            s::system_msg("No session selected — send a message or /new to start");
+        } else {
+            s::info_line("Session", &format!("{} (active)", &a.session_id()[..8]));
+        }
         println!();
     }
 

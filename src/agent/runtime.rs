@@ -73,8 +73,6 @@ impl AgentRuntime {
         let ctx = ProjectContext::load_from(".").unwrap_or_default();
         let system_prompt = build_system_prompt(&ctx, &tools);
 
-        let session_id = db.create_session()?;
-
         Ok(Self {
             session_memory: SessionMemory::new(max_session_messages),
             provider,
@@ -88,7 +86,7 @@ impl AgentRuntime {
             similarity_threshold,
             db: Some(db),
             vector_store: Some(vector_store),
-            session_id,
+            session_id: String::new(),
             top_k_memories,
         })
     }
@@ -236,11 +234,20 @@ impl AgentRuntime {
         }
     }
 
+    fn ensure_session(&mut self) -> anyhow::Result<()> {
+        if self.session_id.is_empty() {
+            let id = self.new_session()?;
+            tracing::info!("Lazy-created session {}", &id[..8]);
+        }
+        Ok(())
+    }
+
     pub async fn handle_message(
         &mut self,
         message: &str,
         sender: tokio::sync::broadcast::Sender<String>,
     ) -> anyhow::Result<()> {
+        self.ensure_session()?;
         self.session_memory.add("user", message);
         self.save_chat("user", message);
 
@@ -248,6 +255,7 @@ impl AgentRuntime {
     }
 
     pub async fn handle_message_sync(&mut self, message: &str) -> anyhow::Result<String> {
+        self.ensure_session()?;
         self.session_memory.add("user", message);
         self.save_chat("user", message);
 

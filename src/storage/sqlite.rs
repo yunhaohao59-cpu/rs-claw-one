@@ -65,8 +65,8 @@ impl Database {
             "CREATE TABLE IF NOT EXISTS sessions (
                 id TEXT PRIMARY KEY,
                 name TEXT,
-                created_at TEXT NOT NULL DEFAULT (datetime('now')),
-                updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+                created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+                updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
             );
 
             CREATE TABLE IF NOT EXISTS chats (
@@ -74,7 +74,7 @@ impl Database {
                 session_id TEXT NOT NULL,
                 role TEXT NOT NULL,
                 content TEXT NOT NULL,
-                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
                 FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
             );
 
@@ -85,7 +85,7 @@ impl Database {
                 embedding BLOB,
                 success_rate REAL DEFAULT 0.0,
                 usage_count INTEGER DEFAULT 0,
-                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+                created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
             );
 
             CREATE TABLE IF NOT EXISTS memories (
@@ -94,7 +94,7 @@ impl Database {
                 embedding BLOB,
                 source TEXT,
                 importance REAL DEFAULT 0.5,
-                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+                created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
             );
 
             CREATE INDEX IF NOT EXISTS idx_chats_session ON chats(session_id);
@@ -159,7 +159,7 @@ impl Database {
 
     pub fn touch_session(&self, session_id: &str) -> anyhow::Result<()> {
         self.conn.execute(
-            "UPDATE sessions SET updated_at = datetime('now') WHERE id = ?1",
+            "UPDATE sessions SET updated_at = datetime('now','localtime') WHERE id = ?1",
             params![session_id],
         )?;
         Ok(())
