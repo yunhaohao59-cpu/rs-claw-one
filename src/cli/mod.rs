@@ -56,14 +56,23 @@ pub async fn run_command(cmd: Command) -> anyhow::Result<()> {
                 config.model.base_url.as_deref(),
             )?;
             let tools = crate::tools::build_registry();
-            let mut agent = crate::agent::AgentRuntime::with_config(
+            let config_dir = crate::config::RsClawConfig::config_dir();
+            std::fs::create_dir_all(&config_dir).ok();
+            let db = crate::storage::Database::open(config_dir.join("rs-claw.db"))?;
+            let vs = crate::memory::VectorStore::new(config_dir.join("vectors"))?;
+            let mut agent = crate::agent::AgentRuntime::with_storage(
                 provider,
                 config.model.model.clone(),
                 tools,
                 config.memory.max_session_messages,
                 config.memory.compaction_threshold,
                 config.memory.auto_compaction,
-            );
+                config.skill.auto_refine,
+                config.skill.similarity_threshold,
+                config.memory.top_k_memories,
+                db,
+                vs,
+            )?;
             let response = agent.handle_message_sync(&message).await?;
             println!("{}", response);
             Ok(())

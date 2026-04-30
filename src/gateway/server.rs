@@ -62,14 +62,23 @@ impl GatewayServer {
         )?;
 
         let agent = Arc::new(Mutex::new(
-            AgentRuntime::with_config(
+            AgentRuntime::with_storage(
                 provider,
                 config.model.model.clone(),
                 crate::tools::build_registry(),
                 config.memory.max_session_messages,
                 config.memory.compaction_threshold,
                 config.memory.auto_compaction,
-            )
+                config.skill.auto_refine,
+                config.skill.similarity_threshold,
+                config.memory.top_k_memories,
+                crate::storage::Database::open(
+                    crate::config::RsClawConfig::config_dir().join("rs-claw.db")
+                )?,
+                crate::memory::VectorStore::new(
+                    crate::config::RsClawConfig::config_dir().join("vectors")
+                )?,
+            )?
         ));
 
         while let Some(msg) = ws_read.next().await {
