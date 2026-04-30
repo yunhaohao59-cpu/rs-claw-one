@@ -131,6 +131,47 @@ impl AgentRuntime {
         Ok(s)
     }
 
+    pub fn session_id(&self) -> &str {
+        &self.session_id
+    }
+
+    pub fn list_sessions(&self) -> anyhow::Result<Vec<(String, String, String)>> {
+        match &self.db {
+            Some(db) => db.list_sessions(),
+            None => Ok(Vec::new()),
+        }
+    }
+
+    pub fn switch_session(&mut self, session_id: &str) -> anyhow::Result<()> {
+        let db = match &self.db {
+            Some(ref db) => db,
+            None => anyhow::bail!("No database configured"),
+        };
+        let count = db.count_chats(session_id)?;
+        if count == 0 {
+            db.touch_session(session_id)?;
+        }
+        self.session_id = session_id.to_string();
+        self.session_memory.clear();
+        let rows = db.load_chats(&self.session_id)?;
+        for row in &rows {
+            self.session_memory.add(&row.role, &row.content);
+        }
+        tracing::info!("Switched to session {} ({} messages)", &self.session_id[..8], rows.len());
+        Ok(())
+    }
+
+    pub fn new_session(&mut self) -> anyhow::Result<String> {
+        let db = match &self.db {
+            Some(ref db) => db,
+            None => anyhow::bail!("No database configured"),
+        };
+        let id = db.create_session()?;
+        self.session_id = id.clone();
+        self.session_memory.clear();
+        Ok(id)
+    }
+
     fn restore_from_db(&mut self) -> anyhow::Result<()> {
         let db = match &self.db {
             Some(db) => db,

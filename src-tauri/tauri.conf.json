@@ -1,0 +1,29 @@
+{
+  "$schema": "https://raw.githubusercontent.com/nicepage/nicepage/refs/heads/main/nicepage.schema.json",
+  "productName": "RS-Claw",
+  "version": "0.3.0",
+  "identifier": "com.rsclaw.app",
+  "build": {
+    "frontendDist": "../ui",
+    "devUrl": "http://localhost:1420",
+    "beforeDevCommand": "",
+    "beforeBuildCommand": ""
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "title": "RS-Claw",
+        "width": 1280,
+        "height": 800,
+        "minWidth": 960,
+        "minHeight": 600,
+        "decorations": false,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  }
+}

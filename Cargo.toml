@@ -1,11 +1,18 @@
+[workspace]
+members = [".", "src-tauri"]
+
 [package]
 name = "rs-claw"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 description = "RS-Claw — 跨平台桌面 AI 助手，全面操控电脑"
 license = "MIT"
 repository = ""
 authors = ["umace"]
+
+[lib]
+name = "rs_claw"
+path = "src/lib.rs"
 
 [[bin]]
 name = "rs-claw"
@@ -41,6 +48,7 @@ dirs = "5"
 thiserror = "2"
 async-trait = "0.1"
 anyhow = "1"
+owo-colors = { version = "4", features = ["supports-colors"] }
 
 # L4 Desktop (gated behind tools-desktop)
 enigo = { version = "0.3", optional = true }

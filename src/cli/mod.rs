@@ -2,6 +2,7 @@ use clap::Subcommand;
 
 mod args;
 mod repl;
+mod style;
 
 pub use args::CliArgs;
 

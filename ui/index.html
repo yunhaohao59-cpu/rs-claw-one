@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RS-Claw</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11/styles/github-dark-dimmed.min.css">
+<link rel="stylesheet" href="css/variables.css">
+<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/animations.css">
+</head>
+<body>
+<div id="app">
+  <div id="titlebar">
+    <div class="titlebar-left">
+      <svg class="app-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+      </svg>
+      <span class="app-name">RS-Claw</span>
+    </div>
+    <div class="window-controls">
+      <button class="win-btn" id="btn-minimize" title="最小化">─</button>
+      <button class="win-btn" id="btn-maximize" title="最大化">□</button>
+      <button class="win-btn win-close" id="btn-close" title="关闭">✕</button>
+    </div>
+  </div>
+
+  <div id="content">
+    <div id="sidebar">
+      <button id="btn-new-chat" class="new-chat-btn">
+        <span class="plus-icon">＋</span> 新对话
+      </button>
+      <div class="sidebar-section-title">最近会话</div>
+      <div id="session-list" class="session-list"></div>
+      <div class="sidebar-footer">
+        <div class="sidebar-divider"></div>
+        <div class="sidebar-stats">
+          <span class="stat-item">🧠 <span id="mem-stat">0</span> 记忆</span>
+          <span class="stat-item">⚡ <span id="skill-stat">0</span> 技能</span>
+        </div>
+        <button id="btn-settings" class="settings-btn">⚙ 设置</button>
+        <div class="version-tag">v0.3.0</div>
+      </div>
+    </div>
+
+    <div id="main">
+      <div id="chat-header">
+        <span id="chat-title" class="chat-title">新对话</span>
+        <div class="header-right">
+          <span id="model-indicator" class="model-badge">● deepseek-chat</span>
+        </div>
+      </div>
+
+      <div id="message-list" class="message-list">
+        <div id="empty-state" class="empty-state">
+          <div class="empty-logo">🔨</div>
+          <h2>RS-Claw</h2>
+          <p class="empty-subtitle">Rust 重写的跨平台 AI 电脑助手</p>
+          <p class="empty-hint">告诉我你想做什么，我来帮你操作电脑</p>
+          <div class="capability-cards">
+            <div class="cap-card">
+              <div class="cap-icon" style="color:var(--accent-primary)">📁</div>
+              <div class="cap-title">文件管理</div>
+              <div class="cap-desc">读写文件，浏览目录</div>
+            </div>
+            <div class="cap-card">
+              <div class="cap-icon" style="color:var(--accent-secondary)">💻</div>
+              <div class="cap-title">命令执行</div>
+              <div class="cap-desc">Shell 命令，系统操作</div>
+            </div>
+            <div class="cap-card">
+              <div class="cap-icon" style="color:var(--accent-purple)">🌐</div>
+              <div class="cap-title">网络请求</div>
+              <div class="cap-desc">HTTP 请求，API 调用</div>
+            </div>
+          </div>
+          <div class="hint-bubble">💡 试试说："帮我查看当前目录有哪些文件"</div>
+        </div>
+      </div>
+
+      <div id="input-area" class="input-area">
+        <div class="input-container">
+          <textarea id="msg-input" class="msg-input" placeholder="输入消息，Shift+Enter 换行" rows="1"></textarea>
+          <button id="btn-send" class="send-btn" disabled>➤</button>
+        </div>
+        <div class="input-status">
+          <span class="status-left">deepseek-chat</span>
+          <span class="status-right"><span class="status-dot connected"></span> 已连接</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="settings-overlay" class="settings-overlay hidden">
+    <div class="settings-modal">
+      <div class="settings-header">
+        <span>设置</span>
+        <button id="btn-settings-close" class="close-btn">✕</button>
+      </div>
+      <div class="settings-body">
+        <div class="settings-nav">
+          <button class="settings-nav-item active" data-panel="api">API 配置</button>
+          <button class="settings-nav-item" data-panel="model">模型设置</button>
+          <button class="settings-nav-item" data-panel="memory">记忆设置</button>
+          <button class="settings-nav-item" data-panel="about">关于</button>
+        </div>
+        <div class="settings-content">
+          <div id="panel-api" class="settings-panel">
+            <label>Provider</label><input type="text" id="cfg-provider" value="deepseek">
+            <label>API Key</label><input type="password" id="cfg-apikey">
+            <label>Model</label><input type="text" id="cfg-model" value="deepseek-chat">
+            <label>Base URL (可选)</label><input type="text" id="cfg-baseurl" placeholder="留空使用默认">
+            <div class="settings-actions"><button class="btn-primary">保存</button></div>
+          </div>
+          <div id="panel-model" class="settings-panel hidden">
+            <label>Temperature</label><input type="range" min="0" max="2" step="0.1" value="0.7" id="cfg-temp">
+            <label>Max Tokens</label><input type="number" value="4096" id="cfg-maxtokens">
+          </div>
+          <div id="panel-memory" class="settings-panel hidden">
+            <label>最大消息数</label><input type="number" value="100" id="cfg-maxmsg">
+            <label>压缩阈值 (tokens)</label><input type="number" value="64000" id="cfg-compact">
+            <label>记忆检索 Top-K</label><input type="number" value="3" id="cfg-topk">
+          </div>
+          <div id="panel-about" class="settings-panel hidden">
+            <p>RS-Claw v0.3.0</p>
+            <p>基于 OpenClaw (MIT) 的 Rust 重写</p>
+            <p>100% 由 DeepSeek V4 Pro 辅助开发</p>
+            <p><a href="https://github.com/yunhaohao59-cpu/rs-claw-one" target="_blank">GitHub</a></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11/highlight.min.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/sidebar.js"></script>
+<script src="js/chat.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

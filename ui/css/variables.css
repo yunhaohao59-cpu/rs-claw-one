@@ -1,0 +1,74 @@
+:root {
+  --bg-base:       #08090C;
+  --bg-surface:    #0E1018;
+  --bg-elevated:   #161923;
+  --bg-overlay:    #1C2030;
+  --bg-hover:      #232840;
+  --bg-active:     #2A3050;
+
+  --border-subtle:  #1E2235;
+  --border-default: #2A2F45;
+  --border-strong:  #3A4060;
+
+  --accent-primary:   #E2A53B;
+  --accent-primary-hover: #F0B84E;
+  --accent-primary-muted: rgba(226, 165, 59, 0.15);
+  --accent-secondary: #4ECDC4;
+  --accent-secondary-muted: rgba(78, 205, 196, 0.15);
+  --accent-purple:    #A78BFA;
+  --accent-purple-muted: rgba(167, 139, 250, 0.12);
+
+  --color-success:  #34D399;
+  --color-warning:  #FBBF24;
+  --color-error:    #F87171;
+  --color-info:     #60A5FA;
+
+  --text-primary:   #E8ECF1;
+  --text-secondary: #8B95A8;
+  --text-muted:     #5A6375;
+  --text-inverse:   #08090C;
+  --text-accent:    #E2A53B;
+
+  --shadow-sm:  0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md:  0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg:  0 8px 32px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 20px rgba(226, 165, 59, 0.15);
+
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   16px;
+  --radius-xl:   20px;
+  --radius-full: 9999px;
+
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  --font-display: 'JetBrains Mono', 'Fira Code', monospace;
+  --font-body:    'IBM Plex Sans', 'Noto Sans SC', -apple-system, sans-serif;
+  --font-mono:    'JetBrains Mono', 'Fira Code', monospace;
+
+  --text-xs:   11px;
+  --text-sm:   13px;
+  --text-base: 14px;
+  --text-lg:   16px;
+  --text-xl:   20px;
+  --text-2xl:  24px;
+  --text-3xl:  32px;
+
+  --transition-fast:   120ms ease;
+  --transition-normal: 200ms ease;
+  --transition-slow:   350ms ease-out;
+
+  --sidebar-width:    260px;
+  --header-height:    52px;
+  --input-min-height: 56px;
+  --titlebar-height:  36px;
+}
