@@ -136,6 +136,27 @@ impl Database {
         Ok(())
     }
 
+    pub fn rename_session(&self, session_id: &str, name: &str) -> anyhow::Result<()> {
+        self.conn.execute(
+            "UPDATE sessions SET name = ?1 WHERE id = ?2",
+            params![name, session_id],
+        )?;
+        Ok(())
+    }
+
+    pub fn auto_name_session(&self, session_id: &str) -> anyhow::Result<()> {
+        let first_msg: Option<String> = self.conn.query_row(
+            "SELECT content FROM chats WHERE session_id = ?1 AND role = 'user' ORDER BY created_at ASC LIMIT 1",
+            params![session_id],
+            |row| row.get(0),
+        ).ok();
+        if let Some(msg) = first_msg {
+            let name = if msg.len() > 30 { format!("{}...", &msg[..30]) } else { msg };
+            self.rename_session(session_id, &name)?;
+        }
+        Ok(())
+    }
+
     pub fn touch_session(&self, session_id: &str) -> anyhow::Result<()> {
         self.conn.execute(
             "UPDATE sessions SET updated_at = datetime('now') WHERE id = ?1",

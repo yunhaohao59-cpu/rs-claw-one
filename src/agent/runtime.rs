@@ -172,6 +172,22 @@ impl AgentRuntime {
         Ok(id)
     }
 
+    pub fn delete_session(&self, session_id: &str) -> anyhow::Result<()> {
+        let db = match &self.db {
+            Some(ref db) => db,
+            None => anyhow::bail!("No database configured"),
+        };
+        db.delete_session(session_id)
+    }
+
+    pub fn rename_session(&self, session_id: &str, name: &str) -> anyhow::Result<()> {
+        let db = match &self.db {
+            Some(ref db) => db,
+            None => anyhow::bail!("No database configured"),
+        };
+        db.rename_session(session_id, name)
+    }
+
     fn restore_from_db(&mut self) -> anyhow::Result<()> {
         let db = match &self.db {
             Some(db) => db,
@@ -191,6 +207,12 @@ impl AgentRuntime {
         if let Some(ref db) = self.db {
             if let Err(e) = db.insert_chat(&self.session_id, role, content) {
                 tracing::warn!("Failed to save chat: {}", e);
+            }
+            if role == "user" {
+                let count = db.count_chats(&self.session_id).unwrap_or(0);
+                if count == 1 {
+                    let _ = db.auto_name_session(&self.session_id);
+                }
             }
         }
     }

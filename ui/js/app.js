@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
   sendBtn.addEventListener('click', () => { if (!sendBtn.disabled) sendMessage(); });
 
   document.getElementById('btn-settings').addEventListener('click', () => {
+    loadConfigToForm();
     settingsOverlay.classList.remove('hidden');
   });
   document.getElementById('btn-settings-close').addEventListener('click', () => {
@@ -58,8 +59,57 @@ document.addEventListener('DOMContentLoaded', () => {
     try { if (window.__TAURI__) await window.__TAURI__.core.invoke('close_window'); } catch(e) {}
   });
 
+  // Settings save
+  document.querySelector('#panel-api .btn-primary').addEventListener('click', async (e) => {
+    e.preventDefault();
+    const provider = document.getElementById('cfg-provider').value.trim() || 'deepseek';
+    const apiKey = document.getElementById('cfg-apikey').value.trim();
+    const model = document.getElementById('cfg-model').value.trim() || 'deepseek-chat';
+    const baseUrl = document.getElementById('cfg-baseurl').value.trim() || null;
+    if (!apiKey) { alert('请输入 API Key'); return; }
+    try {
+      if (window.__TAURI__) {
+        await window.__TAURI__.core.invoke('save_config', { provider, apiKey, model, baseUrl });
+        settingsOverlay.classList.add('hidden');
+        alert('配置已保存。请重启应用以生效。');
+      }
+    } catch (e) { alert('保存失败: ' + e); }
+  });
+
+  // Check if API key is set
+  checkApiKey();
+
   showEmptyState(true);
 });
+
+async function checkApiKey() {
+  try {
+    if (window.__TAURI__) {
+      const has = await window.__TAURI__.core.invoke('has_api_key');
+      if (!has) {
+        document.getElementById('message-list').innerHTML = `
+          <div class="empty-state">
+            <div class="empty-logo">🔑</div>
+            <h2>需要 API Key</h2>
+            <p class="empty-subtitle">点击左下角 ⚙ 设置，填写 DeepSeek API Key 后重启应用</p>
+            <p class="empty-hint"><a href="https://platform.deepseek.com" target="_blank" style="color:var(--accent-primary)">获取 DeepSeek API Key →</a></p>
+          </div>`;
+      }
+    }
+  } catch(e) {}
+}
+
+async function loadConfigToForm() {
+  try {
+    if (window.__TAURI__) {
+      const cfg = await window.__TAURI__.core.invoke('get_config');
+      document.getElementById('cfg-provider').value = cfg.model?.provider || 'deepseek';
+      document.getElementById('cfg-apikey').value = cfg.model?.api_key || '';
+      document.getElementById('cfg-model').value = cfg.model?.model || 'deepseek-chat';
+      document.getElementById('cfg-baseurl').value = cfg.model?.base_url || '';
+    }
+  } catch(e) { console.warn('Load config failed:', e); }
+}
 
 async function sendMessage() {
   const input = document.getElementById('msg-input');
