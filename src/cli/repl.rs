@@ -10,7 +10,7 @@ use tokio::sync::Mutex;
 
 pub async fn start() -> anyhow::Result<()> {
     println!("╔══════════════════════════════════════════╗");
-    println!("║         RS-Claw  v0.1.0                  ║");
+    println!("║         RS-Claw  v0.2.0                  ║");
     println!("║   AI-powered computer control agent      ║");
     println!("╚══════════════════════════════════════════╝");
 
