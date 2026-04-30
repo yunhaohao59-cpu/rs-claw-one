@@ -6,6 +6,7 @@ use crate::agent::system_prompt::build_system_prompt;
 use crate::context::ProjectContext;
 use crate::storage::Database;
 use crate::skill::{SkillRefiner, Skill};
+use futures_util::StreamExt;
 
 const MAX_TOOL_LOOPS: usize = 10;
 const VECTOR_STORE_DIR: &str = "vectors";
@@ -260,6 +261,263 @@ impl AgentRuntime {
         self.save_chat("user", message);
 
         self.run_loop_sync().await
+    }
+
+    pub async fn handle_message_stream<F>(
+        &mut self,
+        message: &str,
+        mut on_text: F,
+        mut on_tool_call: impl FnMut(&str),
+        mut on_tool_result: impl FnMut(&str, &str, bool),
+    ) -> anyhow::Result<String>
+    where
+        F: FnMut(&str),
+    {
+        self.ensure_session()?;
+        self.session_memory.add("user", message);
+        self.save_chat("user", message);
+
+        let mut messages = self.build_messages();
+        self.inject_memories(&mut messages);
+        let tool_defs = self.tools.definitions();
+        let mut full_response = String::new();
+        let mut task_log = String::new();
+        let mut loop_count = 0;
+
+        loop {
+            if loop_count >= MAX_TOOL_LOOPS {
+                let msg = "\n⚠ Max tool iterations reached.";
+                full_response.push_str(msg);
+                on_text(msg);
+                break;
+            }
+            loop_count += 1;
+
+            if self.auto_compaction {
+                let tokens = self.session_memory.estimated_tokens();
+                if tokens > self.compaction_threshold {
+                    let compactor = Compactor::new(self.provider.as_ref());
+                    let records = self.session_memory.all_records();
+                    if let Ok(summary) = compactor.compact(&records).await {
+                        self.session_memory.clear();
+                        self.session_memory.add("system", &summary);
+                        messages = self.build_messages();
+                        self.inject_memories(&mut messages);
+                    }
+                }
+            }
+
+            let request = ChatRequest {
+                model: self.model_name.clone(),
+                messages: messages.clone(),
+                stream: false,
+                temperature: Some(0.7),
+                max_tokens: Some(4096),
+                tools: if loop_count == 1 { Some(tool_defs.clone()) } else { None },
+            };
+
+            let response = self.provider.chat(request).await?;
+            let model_tool_calls = response.tool_calls;
+            let reasoning = response.reasoning_content;
+
+            if !model_tool_calls.is_empty() {
+                let tool_names: Vec<&str> = model_tool_calls.iter().map(|t| t.name()).collect();
+                let tool_line = format!("🔧 {}", tool_names.join(", "));
+                full_response.push_str(&format!("\n{}", tool_line));
+                task_log.push_str(&format!("{}\n", tool_line));
+
+                for &name in &tool_names {
+                    on_tool_call(name);
+                }
+
+                if reasoning.is_some() {
+                    messages.push(ChatMessage::assistant_tool_calls_with_reasoning(
+                        model_tool_calls.clone(), reasoning));
+                } else {
+                    messages.push(ChatMessage::assistant_tool_calls(model_tool_calls.clone()));
+                }
+
+                for tc in &model_tool_calls {
+                    match self.tools.dispatch(tc.name(), tc.arguments_json()).await {
+                        Ok(result) => {
+                            let summary = if result.len() > 300 {
+                                format!("{}...", &result[..300])
+                            } else { result.clone() };
+                            messages.push(ChatMessage::tool_result(&tc.id, &result));
+                            full_response.push_str(&format!("\n  ✓ {} → {}", tc.name(), summary));
+                            task_log.push_str(&format!("  ✓ {} → {}\n", tc.name(), summary));
+                            on_tool_result(tc.name(), &summary, true);
+                        }
+                        Err(e) => {
+                            let err = format!("Error: {}", e);
+                            messages.push(ChatMessage::tool_result(&tc.id, &err));
+                            full_response.push_str(&format!("\n  ✗ {} → {}", tc.name(), e));
+                            task_log.push_str(&format!("  ✗ {} → {}\n", tc.name(), e));
+                            on_tool_result(tc.name(), &format!("Error: {}", e), false);
+                        }
+                    }
+                }
+                full_response.push('\n');
+                continue;
+            }
+
+            if !response.content.is_empty() {
+                on_text(&response.content);
+                full_response.push_str(&response.content);
+            }
+            break;
+        }
+
+        self.session_memory.add("assistant", &full_response);
+        self.save_chat("assistant", &full_response);
+
+        if self.auto_refine && !task_log.is_empty() {
+            self.try_refine_skill(&task_log).await;
+        }
+
+        Ok(full_response)
+    }
+
+    pub async fn handle_message_stream_sync<F>(
+        &mut self,
+        message: &str,
+        mut on_token: F,
+        mut on_tool_call: impl FnMut(&str),
+        mut on_tool_result: impl FnMut(&str, &str, bool),
+    ) -> anyhow::Result<String>
+    where
+        F: FnMut(&str),
+    {
+        self.ensure_session()?;
+        self.session_memory.add("user", message);
+        self.save_chat("user", message);
+
+        let mut messages = self.build_messages();
+        self.inject_memories(&mut messages);
+        let tool_defs = self.tools.definitions();
+        let mut full_response = String::new();
+        let mut task_log = String::new();
+        let mut loop_count = 0;
+
+        loop {
+            if loop_count >= MAX_TOOL_LOOPS {
+                let msg = "\n⚠ Max tool iterations reached.";
+                full_response.push_str(msg);
+                on_token(msg);
+                break;
+            }
+            loop_count += 1;
+
+            if self.auto_compaction {
+                let tokens = self.session_memory.estimated_tokens();
+                if tokens > self.compaction_threshold {
+                    let compactor = Compactor::new(self.provider.as_ref());
+                    let records = self.session_memory.all_records();
+                    if let Ok(summary) = compactor.compact(&records).await {
+                        self.session_memory.clear();
+                        self.session_memory.add("system", &summary);
+                        messages = self.build_messages();
+                        self.inject_memories(&mut messages);
+                    }
+                }
+            }
+
+            let has_tools = loop_count == 1;
+
+            if has_tools {
+                let request = ChatRequest {
+                    model: self.model_name.clone(),
+                    messages: messages.clone(),
+                    stream: false,
+                    temperature: Some(0.7),
+                    max_tokens: Some(4096),
+                    tools: Some(tool_defs.clone()),
+                };
+
+                let response = self.provider.chat(request).await?;
+                let model_tool_calls = response.tool_calls;
+                let reasoning = response.reasoning_content;
+
+                if !model_tool_calls.is_empty() {
+                    let tool_names: Vec<&str> = model_tool_calls.iter().map(|t| t.name()).collect();
+                    let tool_line = format!("🔧 {}", tool_names.join(", "));
+                    full_response.push_str(&format!("\n{}", tool_line));
+                    task_log.push_str(&format!("{}\n", tool_line));
+                    for &name in &tool_names { on_tool_call(name); }
+
+                    if reasoning.is_some() {
+                        messages.push(ChatMessage::assistant_tool_calls_with_reasoning(
+                            model_tool_calls.clone(), reasoning));
+                    } else {
+                        messages.push(ChatMessage::assistant_tool_calls(model_tool_calls.clone()));
+                    }
+
+                    for tc in &model_tool_calls {
+                        match self.tools.dispatch(tc.name(), tc.arguments_json()).await {
+                            Ok(result) => {
+                                let summary = if result.len() > 300 { format!("{}...", &result[..300]) } else { result.clone() };
+                                messages.push(ChatMessage::tool_result(&tc.id, &result));
+                                full_response.push_str(&format!("\n  ✓ {} → {}", tc.name(), summary));
+                                task_log.push_str(&format!("  ✓ {} → {}\n", tc.name(), summary));
+                                on_tool_result(tc.name(), &summary, true);
+                            }
+                            Err(e) => {
+                                let err = format!("Error: {}", e);
+                                messages.push(ChatMessage::tool_result(&tc.id, &err));
+                                full_response.push_str(&format!("\n  ✗ {} → {}", tc.name(), e));
+                                task_log.push_str(&format!("  ✗ {} → {}\n", tc.name(), e));
+                                on_tool_result(tc.name(), &err, false);
+                            }
+                        }
+                    }
+                    full_response.push('\n');
+                    continue;
+                }
+
+                if !response.content.is_empty() {
+                    on_token(&response.content);
+                    full_response.push_str(&response.content);
+                }
+                break;
+            } else {
+                let stream_request = ChatRequest {
+                    model: self.model_name.clone(),
+                    messages: messages.clone(),
+                    stream: true,
+                    temperature: Some(0.7),
+                    max_tokens: Some(4096),
+                    tools: None,
+                };
+
+                let mut stream = self.provider.chat_stream(stream_request).await?;
+                let mut stream_content = String::new();
+                while let Some(chunk) = stream.next().await {
+                    match chunk {
+                        Ok(text) => {
+                            on_token(&text);
+                            stream_content.push_str(&text);
+                        }
+                        Err(e) => {
+                            on_token(&format!("\n⚠ Stream error: {}", e));
+                            break;
+                        }
+                    }
+                }
+                if !stream_content.is_empty() {
+                    full_response.push_str(&stream_content);
+                }
+                break;
+            }
+        }
+
+        self.session_memory.add("assistant", &full_response);
+        self.save_chat("assistant", &full_response);
+
+        if self.auto_refine && !task_log.is_empty() {
+            self.try_refine_skill(&task_log).await;
+        }
+
+        Ok(full_response)
     }
 
     async fn run_loop(

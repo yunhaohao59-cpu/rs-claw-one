@@ -54,29 +54,33 @@ async fn send_message(
     state: tauri::State<'_, AppState>,
     app: tauri::AppHandle,
     message: String,
-) -> Result<(), String> {
+) -> Result<String, String> {
     let mut agent = state.agent.lock().await;
+
+    let app_clone = app.clone();
+    let app_tool = app.clone();
+    let app_text = app.clone();
+
+    let response = agent.handle_message_stream_sync(
+        &message,
+        move |text| {
+            let _ = app_text.emit("chat-event", ChatEvent::text_delta(text));
+        },
+        move |tool_name| {
+            let _ = app_tool.emit("chat-event", ChatEvent::tool_call(tool_name));
+        },
+        move |tool_name, result, ok| {
+            if ok {
+                let _ = app_clone.emit("chat-event", ChatEvent::tool_result_ok(tool_name, result, 0));
+            } else {
+                let _ = app_clone.emit("chat-event", ChatEvent::tool_error(tool_name, result));
+            }
+        },
+    ).await.map_err(|e| e.to_string())?;
+
     let sid = agent.session_id().to_string();
-    let response = agent.handle_message_sync(&message).await.map_err(|e| e.to_string())?;
-    let lines: Vec<&str> = response.lines().collect();
-    for line in &lines {
-        if line.starts_with("🔧") {
-            let name = line.trim_start_matches("🔧 ").to_string();
-            let _ = app.emit("chat-event", ChatEvent::tool_call(&name));
-        } else if line.starts_with("  ✓") {
-            let rest = line.trim_start_matches("  ✓ ").trim();
-            let (name, result) = rest.split_once(" → ").unwrap_or((rest, ""));
-            let _ = app.emit("chat-event", ChatEvent::tool_result_ok(name, result, 0));
-        } else if line.starts_with("  ✗") {
-            let rest = line.trim_start_matches("  ✗ ").trim();
-            let (name, err) = rest.split_once(" → ").unwrap_or((rest, ""));
-            let _ = app.emit("chat-event", ChatEvent::tool_error(name, err));
-        } else {
-            let _ = app.emit("chat-event", ChatEvent::text_delta(line));
-        }
-    }
     let _ = app.emit("chat-event", ChatEvent::done(&sid));
-    Ok(())
+    Ok(response)
 }
 
 #[tauri::command]

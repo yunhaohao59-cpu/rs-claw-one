@@ -1,0 +1,16 @@
+用户：检查系统情况
+所有命令都报了 "program not found"，让我先排查一下当前 shell 环境的基本情况：
+<｜｜DSML｜｜tool_calls>
+<｜｜DSML｜｜invoke name="shell">
+<｜｜DSML｜｜parameter name="command" string="true">pwd</｜｜DSML｜｜parameter>
+</｜｜DSML｜｜invoke>
+<｜｜DSML｜｜invoke name="shell">
+<｜｜DSML｜｜parameter name="command" string="true">echo $PATH</｜｜DSML｜｜parameter>
+</｜｜DSML｜｜invoke>
+<｜｜DSML｜｜invoke name="shell">
+<｜｜DSML｜｜parameter name="command" string="true">ls /bin | head -30</｜｜DSML｜｜parameter>
+</｜｜DSML｜｜invoke>
+<｜｜DSML｜｜invoke name="shell">
+<｜｜DSML｜｜parameter name="command" string="true">ls /usr/bin | head -30</｜｜DSML｜｜parameter>
+</｜｜DSML｜｜invoke>
+</｜｜DSML｜｜tool_calls>

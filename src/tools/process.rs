@@ -28,8 +28,19 @@ impl Tool for ShellTool {
         let command = arguments["command"].as_str().unwrap_or("");
         let cwd = arguments["cwd"].as_str();
 
-        let mut cmd = Command::new("sh");
-        cmd.args(["-c", command]);
+        #[cfg(windows)]
+        let mut cmd = {
+            let mut c = Command::new("cmd");
+            c.args(["/c", command]);
+            c
+        };
+        #[cfg(not(windows))]
+        let mut cmd = {
+            let mut c = Command::new("sh");
+            c.args(["-c", command]);
+            c
+        };
+
         cmd.stdout(Stdio::piped());
         cmd.stderr(Stdio::piped());
         cmd.stdin(Stdio::null());
@@ -51,6 +62,10 @@ impl Tool for ShellTool {
             result.push_str(&format!("STDERR:\n{}\n", stderr));
         }
         result.push_str(&format!("Exit code: {}", exit_code));
+
+        if result.trim().is_empty() {
+            result = format!("Exit code: {}", exit_code);
+        }
         Ok(result)
     }
 }
