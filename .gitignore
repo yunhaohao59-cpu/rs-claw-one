@@ -7,3 +7,7 @@
 *.swo
 *~
 .DS_Store
+vm/*.iso
+vm/*.qcow2
+vm/tpm-state/
+vm/OVMF_VARS_4M.fd

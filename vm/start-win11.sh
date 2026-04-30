@@ -2,7 +2,7 @@
 set -e
 
 VM_DIR="$(cd "$(dirname "$0")" && pwd)"
-ISO="$VM_DIR/Win11_24H2.iso"
+ISO="$VM_DIR/SW_DVD9_Win_Pro_11_24H2_64BIT_ChnSimp_Pro_Ent_EDU_N_MLF_X23-69833.ISO"
 DISK="$VM_DIR/win11.qcow2"
 OVMF_CODE="/usr/share/OVMF/OVMF_CODE_4M.fd"
 OVMF_VARS="$VM_DIR/OVMF_VARS_4M.fd"
@@ -36,9 +36,10 @@ fi
 
 # ── TPM state ──
 if [ ! -d "$TPM_DIR" ]; then
-    msg "Initialising TPM emulator..."
+    msg "Initialising TPM emulator (needs sudo once)..."
     mkdir -p "$TPM_DIR"
-    swtpm_setup --tpmstate "$TPM_DIR" --tpm2 --create-ek-cert --create-platform-cert --overwrite
+    sudo swtpm_setup --tpmstate "$TPM_DIR" --tpm2 --create-ek-cert --create-platform-cert --overwrite
+    sudo chown -R "$USER:$USER" "$TPM_DIR"
 fi
 
 # ── kill old processes ──
@@ -68,12 +69,12 @@ qemu-system-x86_64 \
     -drive if=pflash,format=raw,file="$OVMF_VARS" \
     \
     -drive file="$DISK",if=none,id=drive0,format=qcow2 \
-    -device ide-hd,drive=drive0,bus=ide.0,bootindex=1 \
+    -device ide-hd,drive=drive0,bus=ide.0 \
     \
     -drive file="$ISO",if=none,id=cdrom,media=cdrom \
-    -device ide-cd,bus=ide.0,drive=cdrom,bootindex=2 \
+    -device ide-cd,drive=cdrom,bus=ide.1 \
     \
-    -tpmdev backend=emulator,id=tpm0,chardev=chrtpm \
+    -tpmdev type=emulator,id=tpm0,chardev=chrtpm \
     -chardev socket,id=chrtpm,path="$TPM_DIR/swtpm-sock" \
     -device tpm-tis,tpmdev=tpm0 \
     \
